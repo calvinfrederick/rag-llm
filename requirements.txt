@@ -6,3 +6,6 @@ chromadb
 openai
 python-dotenv
 python-multipart
+datasets
+requests
+ollama
