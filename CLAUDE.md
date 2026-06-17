@@ -1,79 +1,69 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-## Project
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## Project Context
 
 A RAG (Retrieval-Augmented Generation) API that ingests PDF files and answers questions grounded in their content. Uses ChromaDB for vector storage, `sentence-transformers` for local embeddings, and llama3 via Ollama for generation.
-
-## Setup
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-```
-
-Requires Ollama running locally with llama3:
-```bash
-ollama pull llama3
-ollama serve
-```
-
-## Running the server
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Interactive API docs available at `http://localhost:8000/docs`.
-
-## Key commands
-
-```bash
-# Ingest a PDF
-curl -X POST http://localhost:8000/ingest \
-  -F "file=@/path/to/document.pdf"
-
-# Ask a question
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is this document about?"}'
-
-# Health check
-curl http://localhost:8000/health
-```
-
-## Architecture
-
-```
-app/
-├── main.py       # FastAPI app — POST /ingest, POST /query, GET /health
-├── ingest.py     # PDF → text → chunks → embeddings → ChromaDB
-├── retrieval.py  # Embed question → query ChromaDB → return top-k chunks
-└── llm.py        # Pass chunks + question to llama3 via Ollama → return answer
-```
-
-**Data flow:**
-
-1. `POST /ingest` — PDF uploaded → `ingest.py` extracts text, splits into 500-char chunks (50-char overlap), embeds with `all-MiniLM-L6-v2`, upserts into ChromaDB.
-2. `POST /query` — question embedded → `retrieval.py` queries ChromaDB for top-5 chunks → `llm.py` builds prompt with context and calls llama3 → answer returned with source citations.
-
-## Key constants (ingest.py)
-
-- `CHUNK_SIZE = 500` — characters per chunk
-- `CHUNK_OVERLAP = 50` — overlap between adjacent chunks
-- `TOP_K = 5` — number of chunks retrieved per query (retrieval.py)
-
-## Environment variables (.env)
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `OLLAMA_BASE_URL` | `http://localhost:11434/v1` | Ollama server URL |
-| `OLLAMA_MODEL` | `llama3` | Model to use for generation |
-
-## Notes
-
-- `chroma_db/` is gitignored — vector index is local only, re-ingest after cloning.
-- Re-ingesting the same PDF is safe — chunks are upserted by a deterministic ID (MD5 of filename + chunk index).
-- To switch to OpenAI GPT: set `OLLAMA_BASE_URL=https://api.openai.com/v1`, `OLLAMA_MODEL=gpt-4o-mini`, and add `OPENAI_API_KEY` — the same `llm.py` client works unchanged.

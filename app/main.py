@@ -3,11 +3,12 @@ import shutil
 import tempfile
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from starlette.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.ingest import ingest_pdf
 from app.retrieval import retrieve
-from app.llm import ask
+from app.llm import ask, ask_stream
 
 app = FastAPI(title="RAG API")
 
@@ -53,6 +54,20 @@ async def query(request: QueryRequest):
     answer = ask(request.question, chunks)
 
     return QueryResponse(answer=answer, sources=chunks)
+
+
+@app.post("/query/stream")
+async def query_stream(request: QueryRequest):
+    """Ask a question and stream the answer token-by-token."""
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    chunks = retrieve(request.question)
+
+    if not chunks:
+        raise HTTPException(status_code=404, detail="No documents ingested yet.")
+
+    return StreamingResponse(ask_stream(request.question, chunks), media_type="text/plain")
 
 
 @app.get("/health")

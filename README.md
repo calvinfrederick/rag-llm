@@ -29,9 +29,9 @@ pip install -r requirements.txt
 # Configure environment
 cp .env.example .env
 
-# Pull the model and start Ollama
-ollama pull llama3
+# start Ollama and pull the model 
 ollama serve
+ollama pull llama3 #in another terminal
 ```
 
 ## Running
