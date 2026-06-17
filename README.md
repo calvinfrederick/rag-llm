@@ -1,6 +1,6 @@
 # RAG LLM API
 
-A Retrieval-Augmented Generation (RAG) API that ingests PDF files and answers questions grounded in their content. Uses ChromaDB for vector storage, `sentence-transformers` for local embeddings, and llama3 via Ollama for generation.
+A Retrieval-Augmented Generation (RAG) API that ingests PDF files and answers questions grounded in their content. Uses ChromaDB for vector storage, `sentence-transformers` for local embeddings, and DeepSeek for generation.
 
 ## Architecture
 
@@ -9,17 +9,17 @@ app/
 ├── main.py       # FastAPI app — POST /ingest, POST /query, GET /health
 ├── ingest.py     # PDF → text → chunks → embeddings → ChromaDB
 ├── retrieval.py  # Embed question → query ChromaDB → return top-k chunks
-└── llm.py        # Pass chunks + question to llama3 via Ollama → return answer
+└── llm.py        # Pass chunks + question to DeepSeek → return answer
 ```
 
 **Data flow:**
 
 1. `POST /ingest` — PDF uploaded → text extracted → split into 500-char chunks (50-char overlap) → embedded with `all-MiniLM-L6-v2` → upserted into ChromaDB.
-2. `POST /query` — question embedded → top-5 chunks retrieved from ChromaDB → chunks + question sent to llama3 → answer returned with source citations.
+2. `POST /query` — question embedded → top-5 chunks retrieved from ChromaDB → chunks + question sent to DeepSeek → answer returned with source citations.
 
 ## Setup
 
-**Prerequisites:** Python 3.10+, [Ollama](https://ollama.com) installed locally.
+**Prerequisites:** Python 3.10+
 
 ```bash
 # Clone and install dependencies
@@ -29,13 +29,7 @@ pip install -r requirements.txt
 # Configure environment
 cp .env.example .env
 
-# start Ollama and pull the model 
-ollama serve
-ollama pull llama3 #in another terminal
-```
-
-## Running
-
+# Running
 ```bash
 uvicorn app.main:app --reload
 ```
@@ -89,20 +83,6 @@ curl http://localhost:8000/health
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OLLAMA_BASE_URL` | `http://localhost:11434/v1` | Ollama server URL |
-| `OLLAMA_MODEL` | `llama3` | Model used for generation |
-
-### Switching to OpenAI GPT
-
-The LLM client uses the OpenAI-compatible API, so swapping providers requires only environment changes:
-
-```env
-OLLAMA_BASE_URL=https://api.openai.com/v1
-OLLAMA_MODEL=gpt-4o-mini
-OPENAI_API_KEY=sk-...
-```
-
-## Notes
-
-- `chroma_db/` is gitignored — the vector index is local only; re-ingest documents after cloning.
-- Re-ingesting the same PDF is safe — chunks are upserted by a deterministic ID (MD5 of filename + chunk index).
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com/v1` | DeepSeek API URL |
+| `DEEPSEEK_MODEL` | `deepseek-v4-flash` | Model used for generation |
+| `DEEPSEEK_API_KEY` | — | Your DeepSeek API key (required) |
