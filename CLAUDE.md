@@ -66,4 +66,4 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Context
 
-A RAG (Retrieval-Augmented Generation) API that ingests PDF files and answers questions grounded in their content. Uses ChromaDB for vector storage, `sentence-transformers` for local embeddings, and llama3 via Ollama for generation.
+A RAG (Retrieval-Augmented Generation) API that ingests PDF files and answers questions grounded in their content. Uses ChromaDB for vector storage, `sentence-transformers` for local embeddings, and DeepSeek (`deepseek-v4-flash`) for generation.
