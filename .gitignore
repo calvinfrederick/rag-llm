@@ -8,3 +8,4 @@ data/ChromaDB
 # Ignore default ChromaDB persistent storage directories
 .chroma/
 chroma_db/
+.env
