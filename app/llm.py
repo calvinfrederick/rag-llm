@@ -12,30 +12,40 @@ If the answer is not in the context, say "I don't have enough information to ans
 Do not make up information."""
 
 
-def _get_client() -> OpenAI:
-    # Ollama is OpenAI-compatible — same client, different base_url, no real API key needed
-    return OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
+_client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
 
 
-def ask(question: str, context_chunks: list[dict]) -> str:
-    """Send question + retrieved chunks to llama3 via Ollama and return the answer."""
+def _build_messages(question: str, context_chunks: list[dict]) -> list[dict]:
     context = "\n\n".join(
         f"[Source: {c['source']}, chunk {c['chunk']}]\n{c['text']}"
         for c in context_chunks
     )
-
     user_message = f"""Context:
 {context}
 
 Question: {question}"""
+    return [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
 
-    client = _get_client()
-    response = client.chat.completions.create(
+
+def ask(question: str, context_chunks: list[dict]) -> str:
+    """Send question + retrieved chunks to llama3 via Ollama and return the answer."""
+    response = _client.chat.completions.create(
         model=OLLAMA_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_message},
-        ],
+        messages=_build_messages(question, context_chunks),
     )
-
     return response.choices[0].message.content
+
+
+def ask_stream(question: str, context_chunks: list[dict]):
+    """Like ask(), but yields text tokens as they're generated."""
+    for chunk in _client.chat.completions.create(
+        model=OLLAMA_MODEL,
+        messages=_build_messages(question, context_chunks),
+        stream=True,
+    ):
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta

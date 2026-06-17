@@ -1,2 +1,10 @@
 .venv/
 data/pdfs/
+#Ignore python cache
+__pycache__/
+*.py[cod]
+# Ignore local ChromaDB database files
+data/ChromaDB
+# Ignore default ChromaDB persistent storage directories
+.chroma/
+chroma_db/
